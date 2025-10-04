@@ -26,22 +26,36 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Task Details"),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        toolbarHeight: 60,
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
         actions: [
           // 🔹 Edit button
           IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: "Edit Task",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddEditTaskScreen(task: widget.task),
-                ),
-              );
-            },
-          ),
+  icon: const Icon(Icons.edit),
+  onPressed: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddEditTaskScreen(task: widget.task),
+      ),
+    );
+     // ✅ Fetch the updated task from provider
+      final provider = Provider.of<TaskProvider>(context, listen: false);
+      final updatedTask = provider.filteredTasks.firstWhere(
+        (t) => t.id == widget.task.id,
+        orElse: () => widget.task,
+      );
+    // 🔹 Rebuild with updated task
+     Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TaskDetailScreen(task: updatedTask),
+        ),
+      );
+    },
+  ),
+
 
           // 🔹 Delete button with loader
           IconButton(

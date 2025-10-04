@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -13,46 +12,75 @@ class TaskListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<TaskProvider>(context);
+    Provider.of<TaskProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 60,
         elevation: 0,
-        backgroundColor: const Color.fromARGB(255, 245, 245, 248),
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
-        title: Text(
-          provider.currentFilter == TaskFilter.all
-              ? "All Tasks"
-              : provider.currentFilter == TaskFilter.completed
-                  ? "Completed Tasks"
-                  : "Pending Tasks",
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        title: const Text(
+          "To-do List",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(12.0),
+
         child: Column(
           children: [
-            // 🔹 Filter control
+            const SizedBox(height: 16), // This adds a 16px gap below the AppBar
+            // 🔹
             Consumer<TaskProvider>(
               builder: (context, provider, _) {
+                final filters = {
+                  TaskFilter.all: "All",
+                  TaskFilter.completed: "Completed",
+                  TaskFilter.pending: "Pending",
+                };
+
                 return SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<TaskFilter>(
-                    segments: const [
-                      ButtonSegment(value: TaskFilter.all, label: Text("All")),
-                      ButtonSegment(
-                        value: TaskFilter.completed,
-                        label: Text("Completed"),
-                      ),
-                      ButtonSegment(
-                        value: TaskFilter.pending,
-                        label: Text("Pending"),
-                      ),
-                    ],
-                    selected: {provider.currentFilter},
-                    onSelectionChanged: (selection) {
-                      provider.setFilter(selection.first);
+                  height: 46,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filters.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final filter = filters.keys.elementAt(index);
+                      final label = filters[filter]!;
+                      final isSelected = provider.currentFilter == filter;
+
+                      return GestureDetector(
+                        onTap: () => provider.setFilter(filter),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.indigo
+                                : Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Center(
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                     },
                   ),
                 );
@@ -70,23 +98,22 @@ class TaskListScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inbox,
-                              size: 80, color: Colors.grey),
+                          Icon(Icons.inbox, size: 80, color: Colors.grey),
                           SizedBox(height: 16),
                           Text(
                             "No tasks yet",
                             style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           SizedBox(height: 8),
                           Text(
                             "Tap the + button below to add your first task",
-                            style: TextStyle(
-                                fontSize: 14, color: Colors.grey),
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                             textAlign: TextAlign.center,
                           ),
                           SizedBox(height: 20),
-                          
                         ],
                       ),
                     );
@@ -127,8 +154,12 @@ class TaskCard extends StatelessWidget {
     final provider = Provider.of<TaskProvider>(context, listen: false);
 
     final bool done = task.isCompleted;
-    final Color chipColor = done ? Colors.green.shade100 : Colors.orange.shade100;
-    final Color textColor = done ? Colors.green.shade800 : Colors.orange.shade800;
+    final Color chipColor = done
+        ? Colors.green.shade100
+        : Colors.orange.shade100;
+    final Color textColor = done
+        ? Colors.green.shade800
+        : Colors.orange.shade800;
     final String statusText = done ? 'Completed' : 'Pending';
 
     return Card(
@@ -138,16 +169,22 @@ class TaskCard extends StatelessWidget {
         leading: Checkbox(
           value: done,
           onChanged: (_) async {
-            await provider.toggleCompletion(task);
+            // 1️⃣ Determine the new status first
+            final newStatus = !task.isCompleted;
+
+            // 2️⃣ Show dialog BEFORE changing the task
             await showSuccessDialog(
               context,
-              title: task.isCompleted ? "Task Completed" : "Task Pending",
-              message: task.isCompleted
+              title: newStatus ? "Task Completed" : "Task Pending",
+              message: newStatus
                   ? "Task has been marked as completed."
                   : "Task has been marked as pending.",
-              icon: task.isCompleted ? Icons.undo : Icons.check_circle,
-              iconColor: task.isCompleted ? Colors.orange : Colors.green,
+              icon: newStatus ? Icons.check_circle : Icons.undo,
+              iconColor: newStatus ? Colors.green : Colors.orange,
             );
+
+            // 3️⃣ Now update the task state
+            await provider.toggleCompletion(task);
           },
         ),
         title: Text(
@@ -166,7 +203,7 @@ class TaskCard extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
-        )
+        ),
       ),
     );
   }

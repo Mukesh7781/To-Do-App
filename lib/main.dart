@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
           titleTextStyle: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
         cardTheme: CardThemeData(

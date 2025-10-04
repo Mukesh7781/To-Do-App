@@ -84,7 +84,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 165, 165, 166),
+        toolbarHeight: 60,
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         title: Text(widget.task == null ? 'Add Task' : 'Edit Task'),
       ),
@@ -134,7 +135,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   onPressed: _isSaving ? null : _saveTask,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: const Color.fromARGB(255, 165, 165, 166),
+                    backgroundColor: Colors.indigo,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
