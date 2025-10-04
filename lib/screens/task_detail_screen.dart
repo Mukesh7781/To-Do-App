@@ -8,9 +8,16 @@ import 'package:task_manager_app/providers/task_provider.dart';
 import 'package:task_manager_app/screens/add_edit_task_screen.dart';
 import 'package:task_manager_app/widgets/dialogs.dart';
 
-class TaskDetailScreen extends StatelessWidget {
+class TaskDetailScreen extends StatefulWidget {
   final Task task;
   const TaskDetailScreen({super.key, required this.task});
+
+  @override
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
+  bool _isDeleting = false; // 🔹 To show loader and disable delete button
 
   @override
   Widget build(BuildContext context) {
@@ -22,62 +29,87 @@ class TaskDetailScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         actions: [
+          // 🔹 Edit button
           IconButton(
             icon: const Icon(Icons.edit),
+            tooltip: "Edit Task",
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AddEditTaskScreen(task: task),
+                  builder: (_) => AddEditTaskScreen(task: widget.task),
                 ),
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () async {
-              final confirmed = await showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text("Delete Task"),
-                  content: const Text(
-                    "Are you sure you want to delete this task?",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Cancel"),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text("Delete"),
-                    ),
-                  ],
-                ),
-              );
 
-              if (confirmed == true) {
-                await provider.deleteTask(task.id);
-                await showSuccessDialog(
-                  context,
-                  title: "Task Deleted",
-                  message: "The task has been removed.",
-                  icon: Icons.delete,
-                  iconColor: Colors.red,
-                );
-                Navigator.pop(context);
-              }
-            },
+          // 🔹 Delete button with loader
+          IconButton(
+            tooltip: "Delete Task",
+            icon: _isDeleting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.red,
+                    ),
+                  )
+                : const Icon(Icons.delete),
+            onPressed: _isDeleting
+                ? null
+                : () async {
+                    final confirmed = await showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text("Delete Task"),
+                        content: const Text(
+                          "Are you sure you want to delete this task?",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed == true) {
+                      setState(() => _isDeleting = true);
+
+                      await provider.deleteTask(widget.task.id);
+                      await showSuccessDialog(
+                        context,
+                        title: "Task Deleted",
+                        message: "The task has been removed successfully.",
+                        icon: Icons.delete,
+                        iconColor: Colors.red,
+                      );
+
+                      setState(() => _isDeleting = false);
+                      Navigator.pop(context);
+                    }
+                  },
           ),
         ],
       ),
+
+      // 🔹 Task details content
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              task.title,
+              widget.task.title,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -91,7 +123,7 @@ class TaskDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (task.dueDate != null) ...[
+                    if (widget.task.dueDate != null) ...[
                       Row(
                         children: [
                           const Icon(
@@ -101,7 +133,7 @@ class TaskDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            "Due Date: ${DateFormat('MMMM d, y').format(task.dueDate!)}",
+                            "Due Date: ${DateFormat('MMMM d, y').format(widget.task.dueDate!)}",
                           ),
                         ],
                       ),
@@ -115,8 +147,8 @@ class TaskDetailScreen extends StatelessWidget {
                       ],
                     ),
                     const Divider(),
-                    if (task.description != null &&
-                        task.description!.isNotEmpty) ...[
+                    if (widget.task.description != null &&
+                        widget.task.description!.isNotEmpty) ...[
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -128,13 +160,17 @@ class TaskDetailScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              task.description!,
+                              widget.task.description!,
                               style: const TextStyle(fontSize: 14),
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ] else
+                      const Text(
+                        "No description added.",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
                   ],
                 ),
               ),

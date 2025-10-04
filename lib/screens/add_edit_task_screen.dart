@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:task_manager_app/models/task.dart';
 import 'package:task_manager_app/providers/task_provider.dart';
 import 'package:task_manager_app/widgets/dialogs.dart';
@@ -18,6 +17,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   late String _title;
   String? _description;
   DateTime? _dueDate;
+  bool _isSaving = false; // 🔹 Prevent multiple clicks
 
   @override
   void initState() {
@@ -34,17 +34,19 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => _dueDate = picked);
-    }
+    if (picked != null) setState(() => _dueDate = picked);
   }
 
-  void _saveTask() async {
+  Future<void> _saveTask() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final newTask = Task(
-        id: widget.task?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      // Prevent multiple taps
+      if (_isSaving) return;
+      setState(() => _isSaving = true);
+
+      final task = Task(
+        id: widget.task?.id ?? '',
         title: _title,
         description: _description,
         dueDate: _dueDate,
@@ -52,10 +54,10 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
       );
 
       final provider = Provider.of<TaskProvider>(context, listen: false);
+
       if (widget.task == null) {
-        await provider.addTask(newTask);
+        await provider.addTask(task);
         await showSuccessDialog(
-          // ignore: use_build_context_synchronously
           context,
           title: "Task Added",
           message: "Your task has been added successfully.",
@@ -63,9 +65,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
           iconColor: Colors.green,
         );
       } else {
-        await provider.updateTask(newTask);
+        await provider.updateTask(task);
         await showSuccessDialog(
-          // ignore: use_build_context_synchronously
           context,
           title: "Task Updated",
           message: "Your changes have been saved.",
@@ -73,7 +74,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
           iconColor: Colors.blue,
         );
       }
-      // ignore: use_build_context_synchronously
+
+      setState(() => _isSaving = false);
       Navigator.pop(context);
     }
   }
@@ -82,55 +84,75 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.task == null ? "Add Task" : "Edit Task"),
+        backgroundColor: const Color.fromARGB(255, 165, 165, 166),
+        foregroundColor: Colors.white,
+        title: Text(widget.task == null ? 'Add Task' : 'Edit Task'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
                 initialValue: _title,
                 decoration: const InputDecoration(
-                  labelText: "Title",
+                  labelText: 'Title',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) =>
-                    value == null || value.isEmpty ? "Title is required" : null,
+                    value == null || value.isEmpty ? 'Title is required' : null,
                 onSaved: (value) => _title = value!,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 initialValue: _description,
                 decoration: const InputDecoration(
-                  labelText: "Description (optional)",
+                  labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
                 ),
                 onSaved: (value) => _description = value,
-                maxLines: 3,
+                maxLines: 2,
               ),
               const SizedBox(height: 16),
               ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: Colors.grey),
-                ),
+                contentPadding: EdgeInsets.zero,
                 title: Text(
                   _dueDate == null
-                      ? "Pick Due Date (optional)"
-                      : "Due: ${DateFormat('MMMM d, y').format(_dueDate!)}",
+                      ? 'Pick Due Date (optional)'
+                      : 'Due: ${_dueDate!.toLocal().toString().split(' ')[0]}',
+                  style: const TextStyle(fontSize: 16),
                 ),
-                trailing: const Icon(Icons.calendar_today),
+                trailing: const Icon(Icons.calendar_today, color: Colors.blueGrey),
                 onTap: _pickDueDate,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _saveTask,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveTask,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: const Color.fromARGB(255, 165, 165, 166),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          widget.task == null ? 'Add Task' : 'Save Changes',
+                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
-                child: Text(widget.task == null ? "Add Task" : "Save Changes"),
               ),
             ],
           ),
