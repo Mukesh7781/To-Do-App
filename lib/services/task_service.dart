@@ -1,43 +1,62 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:task_manager_app/models/task.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TaskService {
-  List<Task> _tasks = [];
+  static const String _storageKey = 'task_list';
 
+  /// 🔹 Fetch all tasks from local storage
   Future<List<Task>> getTasks() async {
-    await Future.delayed(const Duration(seconds: 1));
-    return List.unmodifiable(_tasks);
+    final prefs = await SharedPreferences.getInstance();
+    final String? jsonString = prefs.getString(_storageKey);
+    if (jsonString == null) return [];
+
+    final List<dynamic> decoded = jsonDecode(jsonString);
+    return decoded.map((e) => Task.fromJson(e)).toList();
   }
 
-  Future<Task> addTask(Task task) async {
-    await Future.delayed(const Duration(seconds: 1));
+  /// 🔹 Add new task and save
+  Future<void> addTask(Task task) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasks = await getTasks();
+
+    // Generate ID if missing
     final newTask = Task(
-      id: Random().nextInt(1000).toString(),
+      id: task.id.isEmpty
+          ? DateTime.now().millisecondsSinceEpoch.toString()
+          : task.id,
       title: task.title,
       description: task.description,
       dueDate: task.dueDate,
+      isCompleted: task.isCompleted,
     );
-    _tasks.add(newTask);
-    return newTask;
+
+    tasks.add(newTask);
+    await _saveTasks(prefs, tasks);
   }
 
+  /// 🔹 Update existing task
   Future<void> updateTask(Task updatedTask) async {
-    await Future.delayed(const Duration(seconds: 1));
-    final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
+    final prefs = await SharedPreferences.getInstance();
+    final tasks = await getTasks();
+    final index = tasks.indexWhere((t) => t.id == updatedTask.id);
     if (index != -1) {
-      _tasks[index] = updatedTask;
+      tasks[index] = updatedTask;
+      await _saveTasks(prefs, tasks);
     }
   }
 
+  /// 🔹 Delete task
   Future<void> deleteTask(String id) async {
-    await Future.delayed(const Duration(seconds: 1));
-    _tasks.removeWhere((t) => t.id == id);
+    final prefs = await SharedPreferences.getInstance();
+    final tasks = await getTasks();
+    tasks.removeWhere((t) => t.id == id);
+    await _saveTasks(prefs, tasks);
   }
 
-  Future<void> loadDummyData() async {
-    _tasks = [
-      Task(id: '1', title: 'Buy groceries', description: 'Milk and eggs', dueDate: DateTime.now().add(const Duration(days: 2))),
-      Task(id: '2', title: 'Finish report', isCompleted: true),
-    ];
+  /// 🔹 Helper: Save tasks list as JSON
+  Future<void> _saveTasks(SharedPreferences prefs, List<Task> tasks) async {
+    final jsonString = jsonEncode(tasks.map((t) => t.toJson()).toList());
+    await prefs.setString(_storageKey, jsonString);
   }
 }

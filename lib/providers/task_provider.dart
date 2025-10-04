@@ -24,9 +24,8 @@ class TaskProvider extends ChangeNotifier {
   TaskFilter get currentFilter => _currentFilter;
 
   TaskProvider() {
-    _service.loadDummyData(); // load some starter tasks
-    fetchTasks();
-  }
+  fetchTasks();
+}
 
   Future<void> fetchTasks() async {
     _tasks = await _service.getTasks();
